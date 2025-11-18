@@ -28,8 +28,10 @@ jobs:
           allow_issue_writing: true
           issue_title: "ZAP Security Scan Findings"
 
-      - name: Upload ZAP Report
+      - name: Upload ZAP Reports
         uses: actions/upload-artifact@v4
         with:
-          name: zap-report
-          path: zap-report.html
+          name: zap-reports
+          path: |
+            **/zap*.html
+            **/*report*.html
