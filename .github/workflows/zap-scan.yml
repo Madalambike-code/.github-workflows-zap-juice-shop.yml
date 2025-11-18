@@ -1,46 +1,43 @@
-name: ZAP Baseline Scan
+name: ZAP Scan against Juice Shop
 
 on:
   workflow_dispatch:
 
+permissions:
+  contents: write
+  issues: write
+
 jobs:
-  zap_scan:
+  zap_against_juice_shop:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout Repository
+      - name: Checkout Repo
         uses: actions/checkout@v4
 
-      - name: Start Juice Shop Application
+      - name: Start Juice Shop
         run: |
           docker run -d -p 3000:3000 bkimminich/juice-shop
-
-      - name: Wait for Juice Shop to Start
-        run: |
-          echo "Waiting for Juice Shop..."
-          for i in {1..30}; do
-            if curl -s http://localhost:3000 > /dev/null; then
-              echo "Juice Shop is up!"
-              exit 0
-            fi
-            echo "Still waiting..."
-            sleep 3
-          done
-          echo "Juice Shop did not start in time!"
-          exit 1
+          sleep 20
 
       - name: Run ZAP Baseline Scan
-        uses: zaproxy/action-baseline@v0.15.0
+        uses: zaproxy/action-baseline@v0.12.0
         with:
           target: "http://localhost:3000"
-          report: "zap-report.html"      # <<< generates report correctly
-          artifact_name: "zap-baseline-report"
-          cmd_options: "-a"
-        timeout-minutes: 25
+          cmd_options: "-t 60"
+          report_file_name: "zap-report.html"
 
-      - name: Upload ZAP HTML Report
-        if: always()
+      - name: Upload ZAP Report
         uses: actions/upload-artifact@v4
         with:
           name: zap-report
           path: zap-report.html
+
+      - name: Create GitHub Issue from ZAP Alerts
+        if: always()
+        uses: zaproxy/action-full-scan@v0.12.0
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          allow_issue_writing: true
+          docker_name: 'owasp/zap2docker-stable'
+          target: 'http://localhost:3000'
